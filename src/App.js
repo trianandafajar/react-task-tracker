@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom'
 import AddTask from './components/AddTask';
 import Header from './components/Header';
@@ -11,22 +11,18 @@ function App() {
   const [showAddTask, setShowAddTask] = useState(false)
   const [tasks, setTasks] = useState([]);
 
+  const fetchApi = useCallback(async (url, options = {}) => {
+    const res = await fetch(url, options);
+    return res.ok ? res.json() : null;
+  }, []);
+
   useEffect(() => {
     const getTasks = async () => {
-      const tasksFromServer = await fetchTasks()
-      setTasks(tasksFromServer)
+      const tasksFromServer = await fetchApi('http://localhost:5000/tasks');
+      setTasks(tasksFromServer || []);
     }
-
-    getTasks()
-  }, [])
-
-  // Fetch Tasks
-  const fetchTasks = async () => {
-    const res = await fetch('http://localhost:5000/tasks')
-    const data = await res.json()
-
-    return data
-  }
+    getTasks();
+  }, [fetchApi]);
 
   // Fetch Task
   const fetchTask = async (id) => {
@@ -37,56 +33,34 @@ function App() {
   }
 
   // Add Task
-  const addTask = async (task) => {
-    const res = await fetch('http://localhost:5000/tasks', {
+  const addTask = useCallback(async (task) => {
+    const data = await fetchApi('http://localhost:5000/tasks', {
       method: 'POST',
-      headers: {
-        'Content-type': 'application/json',
-      },
+      headers: {'Content-type': 'application/json'},
       body: JSON.stringify(task),
-    })
-
-    const data = await res.json()
-
-    setTasks([...tasks, data])
-
-    // const id = Math.floor(Math.random() * 10000) + 1
-    // const newTask = { id, ...task }
-    // setTasks([...tasks, newTask])
-  }
+    });
+    if (data) setTasks([...tasks, data]);
+  }, [tasks, fetchApi]);
 
   // Delete Task
-  const deleteTask = async (id) => {
-    const res = await fetch(`http://localhost:5000/tasks/${id}`, {
-      method: 'DELETE',
-    })
-    //We should control the response status to decide if we will change the state or not.
-    res.status === 200
-      ? setTasks(tasks.filter((task) => task.id !== id))
-      : alert('Error Deleting This Task')
-  }
+  const deleteTask = useCallback(async (id) => {
+    const res = await fetch(`http://localhost:5000/tasks/${id}`, {method: 'DELETE'});
+    if (res.status === 200) setTasks(tasks.filter((task) => task.id !== id));
+    else alert('Error Deleting This Task');
+  }, [tasks]);
 
   // Toggle Reminder
-  const toggleReminder = async (id) => {
-    const taskToToggle = await fetchTask(id)
-    const updTask = { ...taskToToggle, reminder: !taskToToggle.reminder }
-
-    const res = await fetch(`http://localhost:5000/tasks/${id}`, {
+  const toggleReminder = useCallback(async (id) => {
+    const taskToToggle = await fetchApi(`http://localhost:5000/tasks/${id}`);
+    if (!taskToToggle) return;
+    const updTask = { ...taskToToggle, reminder: !taskToToggle.reminder };
+    const data = await fetchApi(`http://localhost:5000/tasks/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-type': 'application/json',
-      },
+      headers: {'Content-type': 'application/json'},
       body: JSON.stringify(updTask),
-    })
-
-    const data = await res.json()
-
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, reminder: data.reminder } : task
-      )
-    )
-  }
+    });
+    if (data) setTasks(tasks.map((task) => task.id === id ? { ...task, reminder: data.reminder } : task));
+  }, [tasks, fetchApi]);
 
   return (
     <Router>
