@@ -1,4 +1,4 @@
-import { Button } from "./Button";
+import Button from "./Button";
 import { useLocation } from "react-router-dom";
 
 const Header = ({ title, onAdd, showAdd }) => {
