@@ -1,6 +1,4 @@
-import React from "react";
-
-export const Button = ({ text, color = "bg-indigo-600", onClick }) => {
+const Button = ({ text, color = "bg-indigo-600", onClick }) => {
   return (
     <button
       onClick={onClick}
@@ -10,3 +8,5 @@ export const Button = ({ text, color = "bg-indigo-600", onClick }) => {
     </button>
   );
 };
+
+export default Button;
